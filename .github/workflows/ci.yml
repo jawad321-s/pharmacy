@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  api:
+    name: API — typecheck, unit tests, e2e
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: pharmasaas
+          POSTGRES_PASSWORD: pharmasaas
+          POSTGRES_DB: pharmasaas_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U pharmasaas"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://pharmasaas:pharmasaas@localhost:5432/pharmasaas_test?schema=public
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      JWT_ACCESS_SECRET: ci-access-secret-for-testing-only-0123456789
+      JWT_REFRESH_SECRET: ci-refresh-secret-for-testing-only-0123456789
+      S3_ENDPOINT: http://localhost:9000
+      SMTP_HOST: localhost
+      SMTP_PORT: 1025
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate Prisma client
+        working-directory: apps/api
+        run: npx prisma generate
+      - name: Typecheck
+        working-directory: apps/api
+        run: npx tsc --noEmit
+      - name: Unit tests (with coverage)
+        working-directory: apps/api
+        run: npx jest --coverage --silent
+      - name: Apply migrations
+        working-directory: apps/api
+        run: npx prisma migrate deploy
+      - name: Seed demo data
+        working-directory: apps/api
+        run: npm run db:seed
+      - name: E2E tests
+        working-directory: apps/api
+        run: npx jest --config ./test/jest-e2e.json --silent --forceExit
+
+  web:
+    name: Web — typecheck and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck
+        working-directory: apps/web
+        run: npx tsc --noEmit
+      - name: Build
+        working-directory: apps/web
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        run: npm run build
+
+  docker:
+    name: Docker images build
+    runs-on: ubuntu-latest
+    needs: [api, web]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build API image
+        run: docker build -f apps/api/Dockerfile -t pharmasaas-api:${{ github.sha }} .
+      - name: Build Web image
+        run: docker build -f apps/web/Dockerfile -t pharmasaas-web:${{ github.sha }} .

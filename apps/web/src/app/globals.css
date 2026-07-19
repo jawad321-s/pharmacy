@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 150 20% 98%;
+  --foreground: 156 30% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 156 30% 10%;
+  --primary: 152 45% 30%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 150 16% 92%;
+  --secondary-foreground: 156 30% 14%;
+  --muted: 150 16% 94%;
+  --muted-foreground: 155 10% 40%;
+  --accent: 150 30% 90%;
+  --accent-foreground: 156 30% 14%;
+  --destructive: 0 72% 46%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 150 14% 87%;
+  --input: 150 14% 84%;
+  --ring: 152 45% 30%;
+  --radius: 0.5rem;
+  --font-sans: 'Segoe UI', Tahoma, Arial;
+}
+
+.dark {
+  --background: 160 15% 8%;
+  --foreground: 150 10% 92%;
+  --card: 158 14% 11%;
+  --card-foreground: 150 10% 92%;
+  --primary: 152 45% 45%;
+  --primary-foreground: 160 20% 6%;
+  --secondary: 158 10% 16%;
+  --secondary-foreground: 150 10% 92%;
+  --muted: 158 10% 15%;
+  --muted-foreground: 150 8% 60%;
+  --accent: 158 12% 18%;
+  --accent-foreground: 150 10% 92%;
+  --destructive: 0 62% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 158 10% 20%;
+  --input: 158 10% 24%;
+  --ring: 152 45% 45%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Numeric alignment respects direction */
+[dir='rtl'] .num {
+  direction: ltr;
+  unicode-bidi: embed;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
