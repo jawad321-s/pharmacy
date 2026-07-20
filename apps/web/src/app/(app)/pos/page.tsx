@@ -7,7 +7,7 @@ import { api, ApiError } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/stores/auth';
 import { usePos, type CartItem } from '@/stores/pos';
-import { cn, formatMoney } from '@/lib/utils';
+import { cn, formatDate, formatMoney } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Select } from '@/components/ui/input';
 import { Dialog } from '@/components/ui/dialog';
@@ -40,11 +40,17 @@ interface Branch {
 interface CompletedSale {
   id: string;
   number: string;
+  subtotal: string;
+  discountAmount: string;
+  taxAmount: string;
   total: string;
+  paidAmount: string;
   changeAmount: string;
   paymentCurrency: string;
   paidCurrencyAmount: string;
   exchangeRate: string;
+  paymentMethod: string;
+  createdAt: string;
   items: {
     id: string;
     quantity: number;
@@ -55,8 +61,15 @@ interface CompletedSale {
 }
 
 interface TenantSettings {
+  name: string;
+  address: string | null;
+  phone: string | null;
   currency: string;
-  settings: { exchangeRates: Record<string, number> } | null;
+  settings: {
+    exchangeRates: Record<string, number>;
+    receiptHeader: string | null;
+    receiptFooter: string | null;
+  } | null;
 }
 
 const REDEEM_VALUE = 0.01;
@@ -72,6 +85,8 @@ export default function PosPage() {
     queryFn: () => api<TenantSettings>('/tenant/me'),
   });
   const rates = tenantInfo.data?.settings?.exchangeRates ?? {};
+  const receiptHeader = tenantInfo.data?.settings?.receiptHeader ?? '';
+  const receiptFooter = tenantInfo.data?.settings?.receiptFooter ?? '';
   // Payment currencies: base first, then any configured foreign currencies.
   const payCurrencies = [currency, ...Object.keys(rates)];
 
@@ -552,32 +567,73 @@ export default function PosPage() {
       >
         {completedSale ? (
           <div className="space-y-3">
-            <div id="receipt" className="rounded-md border p-4 text-sm">
-              <p className="text-center font-bold">{tenant?.name}</p>
-              <p className="text-center text-xs text-muted-foreground">
-                {t('pos.invoiceNumber')}: {completedSale.number}
+            <div id="receipt" className="mx-auto max-w-[300px] rounded-md border bg-white p-4 text-sm text-black">
+              {receiptHeader ? (
+                <p className="whitespace-pre-line text-center text-xs font-medium">
+                  {receiptHeader}
+                </p>
+              ) : null}
+              <p className="text-center text-base font-bold">
+                {tenantInfo.data?.name ?? tenant?.name}
               </p>
-              <div className="my-2 border-t border-dashed" />
+              {tenantInfo.data?.address ? (
+                <p className="text-center text-[11px] text-neutral-600">
+                  {tenantInfo.data.address}
+                </p>
+              ) : null}
+              {tenantInfo.data?.phone ? (
+                <p className="num text-center text-[11px] text-neutral-600" dir="ltr">
+                  {tenantInfo.data.phone}
+                </p>
+              ) : null}
+              <div className="my-2 border-t border-dashed border-neutral-400" />
+              <div className="flex justify-between text-[11px] text-neutral-600">
+                <span>{completedSale.number}</span>
+                <span className="num">{formatDate(completedSale.createdAt, locale, true)}</span>
+              </div>
+              <div className="my-2 border-t border-dashed border-neutral-400" />
               {completedSale.items.map((item) => (
-                <div key={item.id} className="flex justify-between gap-2">
-                  <span>
+                <div key={item.id} className="mb-1">
+                  <p className="leading-tight">
                     {locale === 'ar' && item.medicine.nameAr
                       ? item.medicine.nameAr
-                      : item.medicine.name}{' '}
-                    × {item.quantity}
-                  </span>
-                  <span className="num">{formatMoney(item.total, currency, locale)}</span>
+                      : item.medicine.name}
+                  </p>
+                  <div className="flex justify-between text-[11px] text-neutral-600">
+                    <span className="num">
+                      {item.quantity} × {formatMoney(item.unitPrice, currency, locale)}
+                    </span>
+                    <span className="num text-black">
+                      {formatMoney(item.total, currency, locale)}
+                    </span>
+                  </div>
                 </div>
               ))}
-              <div className="my-2 border-t border-dashed" />
-              <div className="flex justify-between font-bold">
+              <div className="my-2 border-t border-dashed border-neutral-400" />
+              <div className="flex justify-between text-[11px] text-neutral-600">
+                <span>{t('common.subtotal')}</span>
+                <span className="num">{formatMoney(completedSale.subtotal, currency, locale)}</span>
+              </div>
+              {Number(completedSale.discountAmount) > 0 ? (
+                <div className="flex justify-between text-[11px] text-neutral-600">
+                  <span>{t('common.discount')}</span>
+                  <span className="num">
+                    −{formatMoney(completedSale.discountAmount, currency, locale)}
+                  </span>
+                </div>
+              ) : null}
+              <div className="flex justify-between text-[11px] text-neutral-600">
+                <span>{t('common.tax')}</span>
+                <span className="num">{formatMoney(completedSale.taxAmount, currency, locale)}</span>
+              </div>
+              <div className="mt-1 flex justify-between text-base font-bold">
                 <span>{t('common.total')}</span>
                 <span className="num">
                   {formatMoney(completedSale.total, currency, locale)}
                 </span>
               </div>
               {completedSale.paymentCurrency !== currency ? (
-                <div className="flex justify-between text-muted-foreground">
+                <div className="flex justify-between text-[11px] text-neutral-600">
                   <span>{t('pos.paidAmount')} ({completedSale.paymentCurrency})</span>
                   <span className="num">
                     {formatMoney(
@@ -585,21 +641,35 @@ export default function PosPage() {
                       completedSale.paymentCurrency,
                       locale,
                     )}
+                    {' × '}
+                    {completedSale.exchangeRate}
                   </span>
                 </div>
               ) : null}
-              <div className="flex justify-between text-muted-foreground">
+              <div className="flex justify-between text-[11px] text-neutral-600">
                 <span>{t('pos.change')}</span>
                 <span className="num">
                   {formatMoney(completedSale.changeAmount, currency, locale)}
                 </span>
               </div>
+              {receiptFooter ? (
+                <>
+                  <div className="my-2 border-t border-dashed border-neutral-400" />
+                  <p className="whitespace-pre-line text-center text-[11px] text-neutral-600">
+                    {receiptFooter}
+                  </p>
+                </>
+              ) : null}
             </div>
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 className="flex-1"
-                onClick={() => window.print()}
+                onClick={() => {
+                  document.documentElement.classList.add('print-receipt');
+                  window.print();
+                  document.documentElement.classList.remove('print-receipt');
+                }}
               >
                 <Printer className="h-4 w-4" />
                 {t('pos.printReceipt')}

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  Banknote,
   BarChart3,
   Bell,
   Building2,
@@ -107,6 +108,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     : [
         { href: '/dashboard', label: t('nav.dashboard'), icon: <LayoutDashboard className="h-4 w-4" />, permission: 'dashboard.view' },
         { href: '/pos', label: t('nav.pos'), icon: <ShoppingCart className="h-4 w-4" />, permission: 'pos.access' },
+        { href: '/day-close', label: t('nav.dayClose'), icon: <Banknote className="h-4 w-4" />, permission: 'sales.view' },
         { href: '/medicines', label: t('nav.medicines'), icon: <Pill className="h-4 w-4" />, permission: 'medicines.view' },
         { href: '/inventory', label: t('nav.inventory'), icon: <Package className="h-4 w-4" />, permission: 'inventory.view' },
         { href: '/purchases', label: t('nav.purchases'), icon: <Truck className="h-4 w-4" />, permission: 'purchases.view' },

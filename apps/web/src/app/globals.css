@@ -68,3 +68,43 @@ body {
   background: hsl(var(--muted-foreground) / 0.3);
   border-radius: 4px;
 }
+
+/* ---------------------------------------------------------------------------
+   Print: isolate a single element (an 80mm thermal receipt or a barcode
+   label sheet). Everything else on the page is hidden so the printer only
+   emits the target. Toggled by adding `print-receipt` / `print-labels`
+   to <html> just before window.print().
+   --------------------------------------------------------------------------- */
+@media print {
+  html.print-receipt body * ,
+  html.print-labels body * {
+    visibility: hidden;
+  }
+  html.print-receipt #receipt,
+  html.print-receipt #receipt *,
+  html.print-labels #label-sheet,
+  html.print-labels #label-sheet * {
+    visibility: visible;
+  }
+  html.print-receipt #receipt {
+    position: absolute;
+    inset-inline-start: 0;
+    top: 0;
+    width: 76mm;
+    color: #000;
+    background: #fff;
+    font-size: 12px;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  html.print-labels #label-sheet {
+    position: absolute;
+    inset-inline-start: 0;
+    top: 0;
+    width: 100%;
+  }
+}
+
+@page {
+  margin: 6mm;
+}

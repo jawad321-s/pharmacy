@@ -5,7 +5,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Archive, Download, Layers, Pencil, Plus, Trash2, Upload } from 'lucide-react';
+import { Archive, Barcode, Download, Layers, Pencil, Plus, Trash2, Upload } from 'lucide-react';
+import { BarcodeLabelsDialog, type LabelTarget } from '@/components/barcode-labels';
 import { api, downloadFile } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/stores/auth';
@@ -82,6 +83,7 @@ export default function MedicinesPage() {
   const [editing, setEditing] = useState<Medicine | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [batchTarget, setBatchTarget] = useState<Medicine | null>(null);
+  const [labelTarget, setLabelTarget] = useState<LabelTarget | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [importResult, setImportResult] = useState<string | null>(null);
 
@@ -321,6 +323,21 @@ export default function MedicinesPage() {
                   </TD>
                   <TD>
                     <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title={t('medicines.printLabels')}
+                        onClick={() =>
+                          setLabelTarget({
+                            name: medicine.name,
+                            nameAr: medicine.nameAr,
+                            barcode: medicine.barcode,
+                            sellingPrice: medicine.sellingPrice,
+                          })
+                        }
+                      >
+                        <Barcode className="h-4 w-4" />
+                      </Button>
                       {canManage ? (
                         <>
                           <Button variant="ghost" size="icon" title={t('medicines.addBatch')}
@@ -479,6 +496,8 @@ export default function MedicinesPage() {
           </div>
         </form>
       </Dialog>
+
+      <BarcodeLabelsDialog target={labelTarget} onClose={() => setLabelTarget(null)} />
     </div>
   );
 }

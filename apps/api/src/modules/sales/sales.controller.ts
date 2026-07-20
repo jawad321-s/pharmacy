@@ -35,6 +35,19 @@ export class SalesController {
     return this.sales.list(tenantId, query);
   }
 
+  @Get('day-close')
+  @RequirePermissions(PERMISSIONS.SALES_VIEW)
+  @ApiOperation({
+    summary: 'Day-close cash reconciliation (by payment method and currency)',
+  })
+  dayClose(
+    @TenantId() tenantId: string,
+    @Query('date') date?: string,
+    @Query('branchId') branchId?: string,
+  ) {
+    return this.sales.dayClose(tenantId, date, branchId || undefined);
+  }
+
   @Get(':id')
   @RequirePermissions(PERMISSIONS.SALES_VIEW)
   @ApiOperation({ summary: 'Get sale detail (receipt data)' })

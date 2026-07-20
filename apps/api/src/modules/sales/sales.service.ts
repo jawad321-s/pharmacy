@@ -42,6 +42,105 @@ export class SalesService {
     private readonly ledger: LedgerService,
   ) {}
 
+  /**
+   * Day-close / cash-reconciliation summary for a single day and branch.
+   * Breaks the day's takings down by payment method and by tendered
+   * currency so a cashier can balance the drawer at shift end.
+   */
+  async dayClose(tenantId: string, dateStr: string | undefined, branchId?: string) {
+    const day = dateStr ? new Date(dateStr) : new Date();
+    const from = new Date(day);
+    from.setHours(0, 0, 0, 0);
+    const to = new Date(day);
+    to.setHours(23, 59, 59, 999);
+
+    const saleWhere: Prisma.SaleWhereInput = {
+      tenantId,
+      createdAt: { gte: from, lte: to },
+      ...(branchId ? { branchId } : {}),
+    };
+
+    const [sales, returnsAgg] = await Promise.all([
+      this.prisma.sale.findMany({
+        where: saleWhere,
+        select: {
+          status: true,
+          total: true,
+          taxAmount: true,
+          discountAmount: true,
+          paymentMethod: true,
+          paymentCurrency: true,
+          paidCurrencyAmount: true,
+        },
+      }),
+      this.prisma.saleReturn.aggregate({
+        where: {
+          tenantId,
+          createdAt: { gte: from, lte: to },
+          ...(branchId ? { branchId } : {}),
+        },
+        _sum: { total: true },
+        _count: true,
+      }),
+    ]);
+
+    const active = sales.filter((s) => s.status !== 'VOID');
+    const byMethod = new Map<string, { count: number; total: number }>();
+    const byCurrency = new Map<
+      string,
+      { count: number; tendered: number; inBase: number }
+    >();
+    let grossTotal = 0;
+    let taxTotal = 0;
+    let discountTotal = 0;
+
+    for (const sale of active) {
+      grossTotal += toNumber(sale.total);
+      taxTotal += toNumber(sale.taxAmount);
+      discountTotal += toNumber(sale.discountAmount);
+
+      const m = byMethod.get(sale.paymentMethod) ?? { count: 0, total: 0 };
+      m.count += 1;
+      m.total += toNumber(sale.total);
+      byMethod.set(sale.paymentMethod, m);
+
+      const c = byCurrency.get(sale.paymentCurrency) ?? {
+        count: 0,
+        tendered: 0,
+        inBase: 0,
+      };
+      c.count += 1;
+      c.tendered += toNumber(sale.paidCurrencyAmount);
+      c.inBase += toNumber(sale.total);
+      byCurrency.set(sale.paymentCurrency, c);
+    }
+
+    const returnsTotal = toNumber(returnsAgg._sum.total);
+
+    return {
+      date: from.toISOString().slice(0, 10),
+      salesCount: active.length,
+      voidCount: sales.length - active.length,
+      grossTotal: round2(grossTotal),
+      taxTotal: round2(taxTotal),
+      discountTotal: round2(discountTotal),
+      returnsCount: returnsAgg._count,
+      returnsTotal: round2(returnsTotal),
+      netTotal: round2(grossTotal - returnsTotal),
+      byPaymentMethod: [...byMethod.entries()].map(([method, v]) => ({
+        method,
+        count: v.count,
+        total: round2(v.total),
+      })),
+      byCurrency: [...byCurrency.entries()].map(([currency, v]) => ({
+        currency,
+        count: v.count,
+        tendered: round2(v.tendered),
+        inBase: round2(v.inBase),
+      })),
+    };
+  }
+
   async list(tenantId: string, query: SalesQueryDto) {
     const where: Prisma.SaleWhereInput = {
       tenantId,

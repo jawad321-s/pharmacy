@@ -54,6 +54,7 @@
   "nav": {
     "dashboard": "لوحة التحكم",
     "pos": "نقطة البيع",
+    "dayClose": "إغلاق اليومية",
     "medicines": "الأدوية",
     "inventory": "المخزون",
     "purchases": "المشتريات",
@@ -102,6 +103,20 @@
     "nearExpiry": "قرب انتهاء الصلاحية",
     "expired": "منتهي الصلاحية",
     "salesCount": "{count} عملية بيع"
+  },
+  "dayClose": {
+    "title": "إغلاق اليومية — تسوية الصندوق",
+    "netTotal": "صافي المتحصلات",
+    "grossTotal": "إجمالي المبيعات",
+    "returns": "المرتجعات",
+    "salesCount": "المبيعات",
+    "byMethod": "حسب طريقة الدفع",
+    "byCurrency": "حسب العملة",
+    "count": "العدد",
+    "tendered": "المدفوع",
+    "inBase": "بالـ {base}",
+    "voids": "الملغاة",
+    "print": "طباعة الملخص"
   },
   "pos": {
     "title": "نقطة البيع",
@@ -163,7 +178,9 @@
     "manufacturingDate": "تاريخ الإنتاج",
     "importDone": "اكتمل الاستيراد: {created} جديد، {updated} محدّث",
     "categories": "التصنيفات",
-    "addCategory": "إضافة تصنيف"
+    "addCategory": "إضافة تصنيف",
+    "printLabels": "طباعة ملصقات الباركود",
+    "labelCount": "عدد الملصقات"
   },
   "inventory": {
     "title": "المخزون",

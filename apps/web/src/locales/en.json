@@ -54,6 +54,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "pos": "Point of Sale",
+    "dayClose": "Day Close",
     "medicines": "Medicines",
     "inventory": "Inventory",
     "purchases": "Purchases",
@@ -102,6 +103,20 @@
     "nearExpiry": "Near expiry",
     "expired": "Expired",
     "salesCount": "{count} sales"
+  },
+  "dayClose": {
+    "title": "Day Close — Cash Reconciliation",
+    "netTotal": "Net takings",
+    "grossTotal": "Gross sales",
+    "returns": "Refunds",
+    "salesCount": "Sales",
+    "byMethod": "By payment method",
+    "byCurrency": "By currency",
+    "count": "Count",
+    "tendered": "Tendered",
+    "inBase": "In {base}",
+    "voids": "Voided",
+    "print": "Print summary"
   },
   "pos": {
     "title": "Point of Sale",
@@ -163,7 +178,9 @@
     "manufacturingDate": "Manufacturing date",
     "importDone": "Import finished: {created} created, {updated} updated",
     "categories": "Categories",
-    "addCategory": "Add category"
+    "addCategory": "Add category",
+    "printLabels": "Print barcode labels",
+    "labelCount": "Number of labels"
   },
   "inventory": {
     "title": "Inventory",
