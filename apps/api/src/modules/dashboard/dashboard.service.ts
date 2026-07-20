@@ -88,6 +88,54 @@ export class DashboardService {
       ),
     );
 
+    // Receivables (money customers owe us) and payables (money we owe
+    // suppliers) — a headline cash-position figure for the owner.
+    const [
+      customerOpening,
+      creditAgg,
+      customerPaid,
+      supplierOpening,
+      purchaseAgg,
+      purchaseReturnAgg,
+    ] = await Promise.all([
+      this.prisma.customer.aggregate({
+        where: { tenantId },
+        _sum: { openingBalance: true },
+      }),
+      this.prisma.sale.aggregate({
+        where: { tenantId },
+        _sum: { creditAmount: true },
+      }),
+      this.prisma.customerPayment.aggregate({
+        where: { tenantId },
+        _sum: { amount: true },
+      }),
+      this.prisma.supplier.aggregate({
+        where: { tenantId },
+        _sum: { openingBalance: true },
+      }),
+      this.prisma.purchaseInvoice.aggregate({
+        where: { tenantId },
+        _sum: { total: true, paidAmount: true },
+      }),
+      this.prisma.purchaseReturn.aggregate({
+        where: { tenantId },
+        _sum: { total: true },
+      }),
+    ]);
+
+    const receivables = round2(
+      toNumber(customerOpening._sum.openingBalance) +
+        toNumber(creditAgg._sum.creditAmount) -
+        toNumber(customerPaid._sum.amount),
+    );
+    const payables = round2(
+      toNumber(supplierOpening._sum.openingBalance) +
+        toNumber(purchaseAgg._sum.total) -
+        toNumber(purchaseAgg._sum.paidAmount) -
+        toNumber(purchaseReturnAgg._sum.total),
+    );
+
     const topMedicineIds = topRows.map((row) => row.medicineId);
     const topMedicines = await this.prisma.medicine.findMany({
       where: { id: { in: topMedicineIds } },
@@ -119,6 +167,8 @@ export class DashboardService {
       expensesMonth: toNumber(monthExpenses._sum.amount),
       profitMonth: monthPnl.netProfit,
       inventoryValue,
+      receivables,
+      payables,
       alerts,
       recentSales,
       topMedicines: topRows.map((row) => ({

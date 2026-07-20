@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   Banknote,
   CalendarClock,
+  HandCoins,
   PackageX,
   TrendingUp,
   Wallet,
@@ -37,6 +38,8 @@ interface DashboardData {
   expensesMonth: number;
   profitMonth: number;
   inventoryValue: number;
+  receivables: number;
+  payables: number;
   alerts: { outOfStock: number; lowStock: number; nearExpiry: number; expired: number };
   recentSales: {
     id: string;
@@ -102,6 +105,25 @@ export default function DashboardPage() {
           value={formatMoney(data.inventoryValue, currency, locale)}
           icon={<Warehouse className="h-4 w-4" />}
         />
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Link href="/debts">
+          <StatCard
+            label={t('dashboard.receivables')}
+            value={formatMoney(data.receivables, currency, locale)}
+            icon={<HandCoins className="h-4 w-4" />}
+            tone={data.receivables > 0 ? 'warning' : 'success'}
+          />
+        </Link>
+        <Link href="/suppliers">
+          <StatCard
+            label={t('dashboard.payables')}
+            value={formatMoney(data.payables, currency, locale)}
+            icon={<Banknote className="h-4 w-4" />}
+            tone={data.payables > 0 ? 'warning' : 'success'}
+          />
+        </Link>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

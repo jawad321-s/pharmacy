@@ -95,6 +95,8 @@
     "profitMonth": "Profit This Month",
     "expensesMonth": "Expenses This Month",
     "inventoryValue": "Inventory Value",
+    "receivables": "Receivables (owed to you)",
+    "payables": "Payables (owed to suppliers)",
     "salesChart": "Sales — last 14 days",
     "topMedicines": "Top selling medicines",
     "recentSales": "Recent sales",

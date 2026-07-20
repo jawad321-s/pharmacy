@@ -95,6 +95,8 @@
     "profitMonth": "أرباح الشهر",
     "expensesMonth": "مصروفات الشهر",
     "inventoryValue": "قيمة المخزون",
+    "receivables": "ذمم مدينة (لك عند العملاء)",
+    "payables": "ذمم دائنة (عليك للموردين)",
     "salesChart": "المبيعات — آخر ١٤ يومًا",
     "topMedicines": "الأدوية الأكثر مبيعًا",
     "recentSales": "أحدث المبيعات",
