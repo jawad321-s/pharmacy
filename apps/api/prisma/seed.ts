@@ -129,18 +129,20 @@ async function seedDemoTenant(passwordHash: string) {
       slug: 'alshifa',
       subdomain: 'alshifa',
       email: 'owner@alshifa.com',
-      phone: '+966114567890',
-      address: 'King Fahd Road, Riyadh, Saudi Arabia',
-      currency: 'SAR',
-      timezone: 'Asia/Riyadh',
+      phone: '+970599123456',
+      address: 'Rukab Street, Ramallah, Palestine',
+      currency: 'ILS',
+      timezone: 'Asia/Hebron',
       status: TenantStatus.ACTIVE,
       subscriptionPlanId: professional.id,
       settings: {
         create: {
-          taxRate: 15,
+          taxRate: 16,
           receiptHeader: 'Al Shifa Pharmacy — صيدلية الشفاء',
           receiptFooter: 'Thank you for your visit — شكراً لزيارتكم',
           nearExpiryDays: 90,
+          // 1 USD = 3.70 ₪, 1 JOD = 5.20 ₪ (edit under Settings → market rate)
+          exchangeRates: { USD: 3.7, JOD: 5.2 },
         },
       },
     },
@@ -162,18 +164,18 @@ async function seedDemoTenant(passwordHash: string) {
       tenantId: tenant.id,
       name: 'Main Branch',
       nameAr: 'الفرع الرئيسي',
-      address: 'King Fahd Road, Riyadh',
-      phone: '+966114567890',
+      address: 'Rukab Street, Ramallah',
+      phone: '+970599123456',
       isMain: true,
     },
   });
   const secondBranch = await prisma.branch.create({
     data: {
       tenantId: tenant.id,
-      name: 'Olaya Branch',
-      nameAr: 'فرع العليا',
-      address: 'Olaya Street, Riyadh',
-      phone: '+966114567891',
+      name: 'Al-Bireh Branch',
+      nameAr: 'فرع البيرة',
+      address: 'Al-Balou Street, Al-Bireh',
+      phone: '+970599123457',
     },
   });
 
@@ -218,9 +220,9 @@ async function seedDemoTenant(passwordHash: string) {
   }
 
   const suppliersData = [
-    { name: 'Gulf Medical Supplies', phone: '+966114000001', email: 'sales@gulfmed.example' },
-    { name: 'Riyadh Pharma Distribution', phone: '+966114000002', email: 'orders@rpd.example' },
-    { name: 'Middle East Healthcare Co', phone: '+966114000003', email: 'contact@mehc.example' },
+    { name: 'Jerusalem Pharmaceuticals (JEPHARM)', phone: '+970229001001', email: 'sales@jepharm.example' },
+    { name: 'Birzeit Pharmaceutical Co', phone: '+970229001002', email: 'orders@birzeitpharma.example' },
+    { name: 'Beit Jala Pharma Distribution', phone: '+970222001003', email: 'contact@bjpharma.example' },
   ];
   const suppliers: string[] = [];
   for (const data of suppliersData) {
@@ -231,10 +233,10 @@ async function seedDemoTenant(passwordHash: string) {
   }
 
   const customersData = [
-    { name: 'Mohammed Saleh', phone: '+966555000001' },
-    { name: 'Fatima Abdullah', phone: '+966555000002' },
-    { name: 'Omar Khalid', phone: '+966555000003' },
-    { name: 'Aisha Rahman', phone: '+966555000004' },
+    { name: 'Mohammed Saleh', phone: '+970599200001' },
+    { name: 'Fatima Abdullah', phone: '+970599200002' },
+    { name: 'Omar Khalid', phone: '+970599200003' },
+    { name: 'Aisha Rahman', phone: '+970599200004' },
   ];
   const customers: string[] = [];
   for (const data of customersData) {
@@ -352,7 +354,7 @@ async function seedDemoTenant(passwordHash: string) {
         purchasePrice: med.cost,
         costPrice: med.cost,
         sellingPrice: med.price,
-        taxRate: 15,
+        taxRate: 16,
         unit: 'box',
         minStock: 15,
       },
@@ -430,7 +432,7 @@ async function seedDemoTenant(passwordHash: string) {
 
       const unitPrice = Number(med.sellingPrice);
       const subtotal = unitPrice * quantity;
-      const taxAmount = Math.round(subtotal * 0.15 * 100) / 100;
+      const taxAmount = Math.round(subtotal * 0.16 * 100) / 100;
       const total = Math.round((subtotal + taxAmount) * 100) / 100;
       saleSeq += 1;
       const createdAt = new Date(Date.now() - day * DAY - s * 3600 * 1000);
@@ -456,7 +458,7 @@ async function seedDemoTenant(passwordHash: string) {
                 quantity,
                 unitPrice,
                 costPrice: Number(med.costPrice),
-                taxRate: 15,
+                taxRate: 16,
                 taxAmount,
                 total,
                 allocations: [{ batchId: batch.id, batchNumber: batch.batchNumber, quantity }],

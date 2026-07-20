@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Field, Input, Textarea } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ErrorText, PageHeader, Spinner } from '@/components/ui/misc';
+import { Plus, Trash2 } from 'lucide-react';
 
 interface TenantData {
   id: string;
@@ -26,7 +27,13 @@ interface TenantData {
     loyaltyEarnRate: string;
     loyaltyRedeemValue: string;
     invoicePrefix: string;
+    exchangeRates: Record<string, number> | null;
   } | null;
+}
+
+interface RateRow {
+  code: string;
+  rate: string;
 }
 
 export default function SettingsPage() {
@@ -51,6 +58,7 @@ export default function SettingsPage() {
     invoicePrefix: 'INV',
   });
   const [passwords, setPasswords] = useState({ currentPassword: '', newPassword: '' });
+  const [rates, setRates] = useState<RateRow[]>([]);
 
   useEffect(() => {
     if (tenant.data) {
@@ -74,6 +82,12 @@ export default function SettingsPage() {
           loyaltyRedeemValue: String(Number(settings.loyaltyRedeemValue)),
           invoicePrefix: settings.invoicePrefix,
         });
+        setRates(
+          Object.entries(settings.exchangeRates ?? {}).map(([code, rate]) => ({
+            code,
+            rate: String(rate),
+          })),
+        );
       }
     }
   }, [tenant.data]);
@@ -103,8 +117,16 @@ export default function SettingsPage() {
   });
 
   const saveOps = useMutation({
-    mutationFn: () =>
-      api('/tenant/me/settings', {
+    mutationFn: () => {
+      const exchangeRates: Record<string, number> = {};
+      for (const row of rates) {
+        const code = row.code.trim().toUpperCase();
+        const value = Number(row.rate);
+        if (code && code !== info.currency && Number.isFinite(value) && value > 0) {
+          exchangeRates[code] = value;
+        }
+      }
+      return api('/tenant/me/settings', {
         method: 'PATCH',
         body: {
           taxRate: Number(ops.taxRate),
@@ -115,9 +137,14 @@ export default function SettingsPage() {
           loyaltyEarnRate: Number(ops.loyaltyEarnRate),
           loyaltyRedeemValue: Number(ops.loyaltyRedeemValue),
           invoicePrefix: ops.invoicePrefix,
+          exchangeRates,
         },
-      }),
-    onSuccess: flashSaved,
+      });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['tenant-me'] });
+      flashSaved();
+    },
   });
 
   const changePassword = useMutation({
@@ -207,6 +234,79 @@ export default function SettingsPage() {
           <Button loading={saveOps.isPending} onClick={() => saveOps.mutate()}>
             {t('common.save')}
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('settings.exchangeRates')}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            {t('settings.exchangeRatesHint', { base: info.currency || 'ILS' })}
+          </p>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm">
+              <span className="w-40 font-semibold">{info.currency || 'ILS'}</span>
+              <span className="text-muted-foreground">
+                1.00 ({t('pos.baseCurrency')})
+              </span>
+            </div>
+            {rates.map((row, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  dir="ltr"
+                  placeholder={t('settings.currencyCode')}
+                  className="w-40 uppercase"
+                  value={row.code}
+                  onChange={(e) => {
+                    const next = [...rates];
+                    next[index] = { ...row, code: e.target.value };
+                    setRates(next);
+                  }}
+                />
+                <span className="text-sm text-muted-foreground">1 =</span>
+                <Input
+                  dir="ltr"
+                  type="number"
+                  step="0.0001"
+                  min={0}
+                  className="w-40"
+                  placeholder={t('settings.rateInBase', { base: info.currency || 'ILS' })}
+                  value={row.rate}
+                  onChange={(e) => {
+                    const next = [...rates];
+                    next[index] = { ...row, rate: e.target.value };
+                    setRates(next);
+                  }}
+                />
+                <span className="text-sm text-muted-foreground">
+                  {info.currency || 'ILS'}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setRates(rates.filter((_, i) => i !== index))}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setRates([...rates, { code: '', rate: '' }])}
+            >
+              <Plus className="h-4 w-4" />
+              {t('settings.addCurrency')}
+            </Button>
+            <Button loading={saveOps.isPending} onClick={() => saveOps.mutate()}>
+              {t('common.save')}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

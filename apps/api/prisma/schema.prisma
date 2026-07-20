@@ -182,8 +182,8 @@ model Tenant {
   phone              String?
   logoUrl            String?
   address            String?
-  timezone           String                @default("Asia/Riyadh")
-  currency           String                @default("SAR")
+  timezone           String                @default("Asia/Hebron")
+  currency           String                @default("ILS")
   status             TenantStatus          @default(TRIAL)
   subscriptionPlanId String?
   plan               Plan?                 @relation(fields: [subscriptionPlanId], references: [id], onDelete: SetNull)
@@ -223,7 +223,7 @@ model TenantSetting {
   id                 String  @id @default(uuid())
   tenantId           String  @unique
   tenant             Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  taxRate            Decimal @default(15) @db.Decimal(5, 2)
+  taxRate            Decimal @default(16) @db.Decimal(5, 2)
   receiptHeader      String?
   receiptFooter      String?
   nearExpiryDays     Int     @default(90)
@@ -233,6 +233,10 @@ model TenantSetting {
   /// currency value of 1 loyalty point when redeemed
   loyaltyRedeemValue Decimal @default(0.01) @db.Decimal(8, 4)
   invoicePrefix      String  @default("INV")
+  /// Accepted payment currencies and how many units of the tenant base
+  /// currency one unit is worth, e.g. {"USD": 3.7, "JOD": 5.2}. The base
+  /// currency (tenant.currency) is always 1 and is not listed here.
+  exchangeRates      Json    @default("{\"USD\": 3.7, \"JOD\": 5.2}")
 }
 
 model Subscription {
@@ -650,6 +654,12 @@ model Sale {
   paidAmount     Decimal       @db.Decimal(12, 2)
   changeAmount   Decimal       @default(0) @db.Decimal(12, 2)
   paymentMethod  PaymentMethod @default(CASH)
+  /// Currency the customer actually tendered in (e.g. USD, JOD, ILS)
+  paymentCurrency String       @default("ILS")
+  /// Units of base currency per one unit of paymentCurrency at sale time
+  exchangeRate   Decimal       @default(1) @db.Decimal(12, 6)
+  /// Amount tendered expressed in paymentCurrency (paidAmount is in base)
+  paidCurrencyAmount Decimal   @default(0) @db.Decimal(12, 2)
   loyaltyEarned  Int           @default(0)
   loyaltyRedeemed Int          @default(0)
   notes          String?

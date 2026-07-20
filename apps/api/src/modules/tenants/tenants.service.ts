@@ -60,6 +60,9 @@ export class TenantsService {
       ...(dto.loyaltyEarnRate !== undefined ? { loyaltyEarnRate: dto.loyaltyEarnRate } : {}),
       ...(dto.loyaltyRedeemValue !== undefined ? { loyaltyRedeemValue: dto.loyaltyRedeemValue } : {}),
       ...(dto.invoicePrefix !== undefined ? { invoicePrefix: dto.invoicePrefix } : {}),
+      ...(dto.exchangeRates !== undefined
+        ? { exchangeRates: dto.exchangeRates as Prisma.InputJsonValue }
+        : {}),
     };
     const createData = {
       ...data,

@@ -4,6 +4,7 @@ import {
   IsEmail,
   IsInt,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   MaxLength,
@@ -100,4 +101,13 @@ export class UpdateTenantSettingsDto {
   @IsString()
   @MaxLength(8)
   invoicePrefix?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Accepted foreign currencies mapped to their value in the base currency, e.g. {"USD": 3.70, "JOD": 5.20}',
+    example: { USD: 3.7, JOD: 5.2 },
+  })
+  @IsOptional()
+  @IsObject()
+  exchangeRates?: Record<string, number>;
 }

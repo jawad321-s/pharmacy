@@ -129,7 +129,10 @@
     "stock": "Stock",
     "outOfStockError": "Not enough stock available",
     "printReceipt": "Print receipt",
-    "receipt": "Receipt"
+    "receipt": "Receipt",
+    "payCurrency": "Payment currency",
+    "baseCurrency": "base",
+    "rate": "rate"
   },
   "medicines": {
     "title": "Medicines",
@@ -331,6 +334,11 @@
     "invoicePrefix": "Invoice prefix",
     "loyaltyEarnRate": "Points earned per 1 currency",
     "loyaltyRedeemValue": "Value of 1 point",
+    "exchangeRates": "Exchange rates (market)",
+    "exchangeRatesHint": "How many {base} one unit of each foreign currency is worth. Update to today's market rate.",
+    "addCurrency": "Add currency",
+    "currencyCode": "Currency (e.g. USD, JOD, EUR)",
+    "rateInBase": "Value in {base}",
     "saved": "Settings saved",
     "changePassword": "Change password",
     "currentPassword": "Current password",

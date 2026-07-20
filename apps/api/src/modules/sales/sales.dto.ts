@@ -70,7 +70,19 @@ export class CreateSaleDto {
   @IsEnum(PaymentMethod)
   paymentMethod: PaymentMethod;
 
-  @ApiProperty({ description: 'Amount tendered by the customer' })
+  @ApiPropertyOptional({
+    description:
+      'Currency the customer pays in (e.g. ILS, USD, JOD). Defaults to the pharmacy base currency. Non-base currencies are converted at the tenant exchange rate.',
+    example: 'ILS',
+  })
+  @IsOptional()
+  @IsString()
+  paymentCurrency?: string;
+
+  @ApiProperty({
+    description:
+      'Amount tendered by the customer, expressed in paymentCurrency',
+  })
   @Type(() => Number)
   @IsNumber()
   @Min(0)

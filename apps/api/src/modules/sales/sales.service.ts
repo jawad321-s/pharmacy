@@ -109,11 +109,32 @@ export class SalesService {
       throw new BadRequestException('Branch not found');
     }
 
-    const settings = await this.prisma.tenantSetting.findUnique({
-      where: { tenantId },
-    });
+    const [settings, tenant] = await Promise.all([
+      this.prisma.tenantSetting.findUnique({ where: { tenantId } }),
+      this.prisma.tenant.findUniqueOrThrow({
+        where: { id: tenantId },
+        select: { currency: true },
+      }),
+    ]);
     const loyaltyEarnRate = toNumber(settings?.loyaltyEarnRate ?? 1);
     const loyaltyRedeemValue = toNumber(settings?.loyaltyRedeemValue ?? 0.01);
+
+    // Resolve the payment currency and its exchange rate to the base
+    // currency. Base currency is always rate 1; other currencies must be
+    // configured in tenant settings.
+    const baseCurrency = tenant.currency;
+    const paymentCurrency = (dto.paymentCurrency ?? baseCurrency).toUpperCase();
+    const rates = (settings?.exchangeRates ?? {}) as Record<string, number>;
+    let exchangeRate = 1;
+    if (paymentCurrency !== baseCurrency) {
+      const configured = Number(rates[paymentCurrency]);
+      if (!Number.isFinite(configured) || configured <= 0) {
+        throw new BadRequestException(
+          `No exchange rate configured for ${paymentCurrency}`,
+        );
+      }
+      exchangeRate = configured;
+    }
 
     const medicineIds = [...new Set(dto.items.map((item) => item.medicineId))];
     const medicines = await this.prisma.medicine.findMany({
@@ -181,10 +202,14 @@ export class SalesService {
     if (total < 0) {
       throw new BadRequestException('Total cannot be negative');
     }
-    if (dto.paidAmount + 0.005 < total) {
+    // Convert the tendered amount from the payment currency to the base
+    // currency. total, paidAmount and changeAmount are always stored in
+    // the base currency; paidCurrencyAmount keeps the original tender.
+    const paidInBase = round2(dto.paidAmount * exchangeRate);
+    if (paidInBase + 0.005 < total) {
       throw new BadRequestException('Paid amount is less than the total');
     }
-    const changeAmount = round2(dto.paidAmount - total);
+    const changeAmount = round2(paidInBase - total);
     const loyaltyEarned = customer ? Math.floor(total * loyaltyEarnRate) : 0;
 
     return this.prisma.$transaction(async (tx) => {
@@ -203,9 +228,12 @@ export class SalesService {
           discountAmount,
           taxAmount,
           total,
-          paidAmount: dto.paidAmount,
+          paidAmount: paidInBase,
           changeAmount,
           paymentMethod: dto.paymentMethod,
+          paymentCurrency,
+          exchangeRate,
+          paidCurrencyAmount: dto.paidAmount,
           loyaltyEarned,
           loyaltyRedeemed: redeemPoints,
           notes: dto.notes ?? null,

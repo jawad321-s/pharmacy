@@ -129,7 +129,10 @@
     "stock": "المخزون",
     "outOfStockError": "لا يوجد مخزون كافٍ",
     "printReceipt": "طباعة الإيصال",
-    "receipt": "الإيصال"
+    "receipt": "الإيصال",
+    "payCurrency": "عملة الدفع",
+    "baseCurrency": "الأساسية",
+    "rate": "السعر"
   },
   "medicines": {
     "title": "الأدوية",
@@ -331,6 +334,11 @@
     "invoicePrefix": "بادئة الفاتورة",
     "loyaltyEarnRate": "نقاط مكتسبة لكل ١ عملة",
     "loyaltyRedeemValue": "قيمة النقطة الواحدة",
+    "exchangeRates": "أسعار الصرف (سعر السوق)",
+    "exchangeRatesHint": "كم يساوي كل وحدة من العملة الأجنبية بالـ {base}. حدّثها حسب سعر السوق اليوم.",
+    "addCurrency": "إضافة عملة",
+    "currencyCode": "العملة (مثل USD، JOD، EUR)",
+    "rateInBase": "القيمة بالـ {base}",
     "saved": "تم حفظ الإعدادات",
     "changePassword": "تغيير كلمة المرور",
     "currentPassword": "كلمة المرور الحالية",

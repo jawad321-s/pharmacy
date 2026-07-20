@@ -42,6 +42,9 @@ interface CompletedSale {
   number: string;
   total: string;
   changeAmount: string;
+  paymentCurrency: string;
+  paidCurrencyAmount: string;
+  exchangeRate: string;
   items: {
     id: string;
     quantity: number;
@@ -51,13 +54,29 @@ interface CompletedSale {
   }[];
 }
 
+interface TenantSettings {
+  currency: string;
+  settings: { exchangeRates: Record<string, number> } | null;
+}
+
 const REDEEM_VALUE = 0.01;
 
 export default function PosPage() {
   const { t, locale } = useI18n();
   const { user, tenant } = useAuth();
-  const currency = tenant?.currency ?? 'SAR';
+  const currency = tenant?.currency ?? 'ILS';
   const pos = usePos();
+
+  const tenantInfo = useQuery({
+    queryKey: ['tenant-me'],
+    queryFn: () => api<TenantSettings>('/tenant/me'),
+  });
+  const rates = tenantInfo.data?.settings?.exchangeRates ?? {};
+  // Payment currencies: base first, then any configured foreign currencies.
+  const payCurrencies = [currency, ...Object.keys(rates)];
+
+  const [payCurrency, setPayCurrency] = useState(currency);
+  const rateFor = (code: string) => (code === currency ? 1 : Number(rates[code]) || 1);
 
   const [branchId, setBranchId] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -170,6 +189,7 @@ export default function PosPage() {
           })),
           discountPercent: pos.discountPercent || undefined,
           paymentMethod,
+          paymentCurrency: payCurrency,
           paidAmount: Number(paidAmount || 0),
           redeemPoints: pos.redeemPoints || undefined,
         },
@@ -179,12 +199,16 @@ export default function PosPage() {
       setShowCheckout(false);
       pos.clear();
       setPaidAmount('');
+      setPayCurrency(currency);
       setError(null);
     },
     onError: (err) => setError(err as Error),
   });
 
   const total = pos.grandTotal(REDEEM_VALUE);
+  // Total expressed in the selected payment currency (for foreign tender).
+  const totalInPayCurrency = total / rateFor(payCurrency);
+  const paidInBase = Number(paidAmount || 0) * rateFor(payCurrency);
 
   return (
     <div className="grid h-[calc(100vh-7.5rem)] gap-4 lg:grid-cols-5">
@@ -449,19 +473,45 @@ export default function PosPage() {
             <p className="num text-3xl font-extrabold">
               {formatMoney(total, currency, locale)}
             </p>
+            {payCurrency !== currency ? (
+              <p className="num mt-1 text-sm font-medium text-primary">
+                = {formatMoney(totalInPayCurrency, payCurrency, locale)}
+                <span className="ms-1 text-xs text-muted-foreground">
+                  ({t('pos.rate')} 1 {payCurrency} = {rateFor(payCurrency)} {currency})
+                </span>
+              </p>
+            ) : null}
           </div>
-          <Field label={t('pos.paymentMethod')}>
-            <Select
-              value={paymentMethod}
-              onChange={(event) => setPaymentMethod(event.target.value)}
-            >
-              <option value="CASH">{t('pos.cash')}</option>
-              <option value="CREDIT_CARD">{t('pos.card')}</option>
-              <option value="BANK_TRANSFER">{t('pos.bankTransfer')}</option>
-              <option value="DIGITAL_WALLET">{t('pos.wallet')}</option>
-            </Select>
-          </Field>
-          <Field label={t('pos.paidAmount')}>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={t('pos.paymentMethod')}>
+              <Select
+                value={paymentMethod}
+                onChange={(event) => setPaymentMethod(event.target.value)}
+              >
+                <option value="CASH">{t('pos.cash')}</option>
+                <option value="CREDIT_CARD">{t('pos.card')}</option>
+                <option value="BANK_TRANSFER">{t('pos.bankTransfer')}</option>
+                <option value="DIGITAL_WALLET">{t('pos.wallet')}</option>
+              </Select>
+            </Field>
+            <Field label={t('pos.payCurrency')}>
+              <Select
+                value={payCurrency}
+                onChange={(event) => {
+                  setPayCurrency(event.target.value);
+                  setPaidAmount('');
+                }}
+              >
+                {payCurrencies.map((code) => (
+                  <option key={code} value={code}>
+                    {code}
+                    {code === currency ? ` (${t('pos.baseCurrency')})` : ''}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+          <Field label={`${t('pos.paidAmount')} (${payCurrency})`}>
             <Input
               type="number"
               min={0}
@@ -470,7 +520,7 @@ export default function PosPage() {
               value={paidAmount}
               onChange={(event) => setPaidAmount(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === 'Enter' && Number(paidAmount) >= total) {
+                if (event.key === 'Enter' && paidInBase + 0.005 >= total) {
                   checkout.mutate();
                 }
               }}
@@ -479,14 +529,14 @@ export default function PosPage() {
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">{t('pos.change')}</span>
             <span className="num font-semibold">
-              {formatMoney(Math.max(0, Number(paidAmount || 0) - total), currency, locale)}
+              {formatMoney(Math.max(0, paidInBase - total), currency, locale)}
             </span>
           </div>
           <Button
             className="w-full"
             size="lg"
             loading={checkout.isPending}
-            disabled={Number(paidAmount || 0) + 0.005 < total}
+            disabled={paidInBase + 0.005 < total}
             onClick={() => checkout.mutate()}
           >
             {t('pos.completeSale')}
@@ -526,6 +576,18 @@ export default function PosPage() {
                   {formatMoney(completedSale.total, currency, locale)}
                 </span>
               </div>
+              {completedSale.paymentCurrency !== currency ? (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>{t('pos.paidAmount')} ({completedSale.paymentCurrency})</span>
+                  <span className="num">
+                    {formatMoney(
+                      completedSale.paidCurrencyAmount,
+                      completedSale.paymentCurrency,
+                      locale,
+                    )}
+                  </span>
+                </div>
+              ) : null}
               <div className="flex justify-between text-muted-foreground">
                 <span>{t('pos.change')}</span>
                 <span className="num">

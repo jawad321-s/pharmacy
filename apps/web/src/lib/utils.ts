@@ -7,11 +7,11 @@ export function cn(...inputs: ClassValue[]): string {
 
 export function formatMoney(
   value: number | string | null | undefined,
-  currency = 'SAR',
+  currency = 'ILS',
   locale = 'en',
 ): string {
   const amount = Number(value ?? 0);
-  return new Intl.NumberFormat(locale === 'ar' ? 'ar-SA' : 'en-US', {
+  return new Intl.NumberFormat(locale === 'ar' ? 'ar-EG' : 'en-US', {
     style: 'currency',
     currency,
     currencyDisplay: 'narrowSymbol',
