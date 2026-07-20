@@ -46,7 +46,7 @@ interface LedgerData {
 export default function SuppliersPage() {
   const { t, locale } = useI18n();
   const { tenant, hasPermission } = useAuth();
-  const currency = tenant?.currency ?? 'SAR';
+  const currency = tenant?.currency ?? 'ILS';
   const queryClient = useQueryClient();
   const canManage = hasPermission('suppliers.manage');
 

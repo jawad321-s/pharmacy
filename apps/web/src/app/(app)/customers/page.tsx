@@ -5,22 +5,26 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { History, Pencil, Plus, Trash2 } from 'lucide-react';
+import { HandCoins, History, Pencil, Plus, ReceiptText, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/stores/auth';
-import { formatDate, formatMoney, formatNumber } from '@/lib/utils';
+import { cn, formatDate, formatMoney, formatNumber } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/input';
 import { Dialog } from '@/components/ui/dialog';
 import { Badge, statusVariant } from '@/components/ui/badge';
 import { EmptyState, ErrorText, PageHeader, Pagination, Spinner } from '@/components/ui/misc';
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
+import { CustomerPaymentDialog } from '@/components/customer-payment-dialog';
+import { CustomerStatementDialog } from '@/components/customer-statement-dialog';
 
 const schema = z.object({
   name: z.string().min(1),
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal('')),
+  openingBalance: z.coerce.number().min(0).optional(),
+  creditLimit: z.coerce.number().min(0).optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -31,6 +35,9 @@ interface Customer {
   email: string | null;
   loyaltyPoints: number;
   totalSpent: string;
+  openingBalance: string;
+  creditLimit: string;
+  balance: number;
   isActive: boolean;
 }
 
@@ -47,7 +54,7 @@ interface HistoryRow {
 export default function CustomersPage() {
   const { t, locale } = useI18n();
   const { tenant, hasPermission } = useAuth();
-  const currency = tenant?.currency ?? 'SAR';
+  const currency = tenant?.currency ?? 'ILS';
   const queryClient = useQueryClient();
   const canManage = hasPermission('customers.manage');
 
@@ -56,6 +63,8 @@ export default function CustomersPage() {
   const [editing, setEditing] = useState<Customer | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [historyTarget, setHistoryTarget] = useState<Customer | null>(null);
+  const [payTarget, setPayTarget] = useState<Customer | null>(null);
+  const [stmtTarget, setStmtTarget] = useState<Customer | null>(null);
 
   const customers = useQuery({
     queryKey: ['customers', search, page],
@@ -125,6 +134,7 @@ export default function CustomersPage() {
                 <TH>{t('common.name')}</TH>
                 <TH>{t('common.phone')}</TH>
                 <TH className="text-end">{t('customers.loyaltyPoints')}</TH>
+                <TH className="text-end">{t('customers.balance')}</TH>
                 <TH className="text-end">{t('customers.totalSpent')}</TH>
                 <TH className="text-end">{t('common.actions')}</TH>
               </TR>
@@ -137,14 +147,36 @@ export default function CustomersPage() {
                   <TD className="text-end">
                     <Badge>{formatNumber(customer.loyaltyPoints, locale)}</Badge>
                   </TD>
+                  <TD className="text-end">
+                    {customer.balance > 0.005 ? (
+                      <Badge variant="warning">
+                        {formatMoney(customer.balance, currency, locale)}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TD>
                   <TD className="num text-end">{formatMoney(customer.totalSpent, currency, locale)}</TD>
                   <TD>
                     <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="icon" title={t('customers.statement')} onClick={() => setStmtTarget(customer)}>
+                        <ReceiptText className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" title={t('customers.purchaseHistory')} onClick={() => setHistoryTarget(customer)}>
                         <History className="h-4 w-4" />
                       </Button>
                       {canManage ? (
                         <>
+                          {customer.balance > 0.005 ? (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title={t('customers.recordPayment')}
+                              onClick={() => setPayTarget(customer)}
+                            >
+                              <HandCoins className="h-4 w-4 text-emerald-600" />
+                            </Button>
+                          ) : null}
                           <Button
                             variant="ghost"
                             size="icon"
@@ -155,6 +187,8 @@ export default function CustomersPage() {
                                 name: customer.name,
                                 phone: customer.phone ?? '',
                                 email: customer.email ?? '',
+                                openingBalance: Number(customer.openingBalance),
+                                creditLimit: Number(customer.creditLimit),
                               });
                               setShowForm(true);
                             }}
@@ -203,6 +237,14 @@ export default function CustomersPage() {
               <Input dir="ltr" type="email" {...form.register('email')} />
             </Field>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={t('customers.openingBalance')}>
+              <Input type="number" step="0.01" min={0} {...form.register('openingBalance')} />
+            </Field>
+            <Field label={t('customers.creditLimit')}>
+              <Input type="number" step="0.01" min={0} {...form.register('creditLimit')} />
+            </Field>
+          </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
               {t('common.cancel')}
@@ -211,6 +253,13 @@ export default function CustomersPage() {
           </div>
         </form>
       </Dialog>
+
+      <CustomerPaymentDialog customer={payTarget} onClose={() => setPayTarget(null)} />
+      <CustomerStatementDialog
+        customerId={stmtTarget?.id ?? null}
+        customerName={stmtTarget?.name ?? ''}
+        onClose={() => setStmtTarget(null)}
+      />
 
       <Dialog
         open={Boolean(historyTarget)}

@@ -48,7 +48,7 @@ interface Branch { id: string; name: string }
 function InventoryContent() {
   const { t, locale } = useI18n();
   const { tenant, hasPermission } = useAuth();
-  const currency = tenant?.currency ?? 'SAR';
+  const currency = tenant?.currency ?? 'ILS';
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
 

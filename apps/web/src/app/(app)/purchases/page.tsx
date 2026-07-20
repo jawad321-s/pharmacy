@@ -51,7 +51,7 @@ interface InvoiceItemDraft {
 export default function PurchasesPage() {
   const { t, locale } = useI18n();
   const { tenant, hasPermission } = useAuth();
-  const currency = tenant?.currency ?? 'SAR';
+  const currency = tenant?.currency ?? 'ILS';
   const queryClient = useQueryClient();
   const canManage = hasPermission('purchases.manage');
 
@@ -305,7 +305,7 @@ export default function PurchasesPage() {
 function ReceiveGoodsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t, locale } = useI18n();
   const { tenant } = useAuth();
-  const currency = tenant?.currency ?? 'SAR';
+  const currency = tenant?.currency ?? 'ILS';
   const queryClient = useQueryClient();
 
   const [supplierId, setSupplierId] = useState('');

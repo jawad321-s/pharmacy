@@ -46,6 +46,7 @@ interface CompletedSale {
   total: string;
   paidAmount: string;
   changeAmount: string;
+  creditAmount: string;
   paymentCurrency: string;
   paidCurrencyAmount: string;
   exchangeRate: string;
@@ -535,26 +536,45 @@ export default function PosPage() {
               value={paidAmount}
               onChange={(event) => setPaidAmount(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === 'Enter' && paidInBase + 0.005 >= total) {
+                if (
+                  event.key === 'Enter' &&
+                  (paidInBase + 0.005 >= total || pos.customerId)
+                ) {
                   checkout.mutate();
                 }
               }}
             />
           </Field>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">{t('pos.change')}</span>
-            <span className="num font-semibold">
-              {formatMoney(Math.max(0, paidInBase - total), currency, locale)}
-            </span>
-          </div>
+          {paidInBase + 0.005 < total ? (
+            <div className="flex justify-between rounded-md bg-amber-500/10 px-3 py-2 text-sm">
+              <span className="font-medium text-amber-700 dark:text-amber-400">
+                {t('pos.debtRemaining')}
+              </span>
+              <span className="num font-bold text-amber-700 dark:text-amber-400">
+                {formatMoney(total - paidInBase, currency, locale)}
+              </span>
+            </div>
+          ) : (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">{t('pos.change')}</span>
+              <span className="num font-semibold">
+                {formatMoney(Math.max(0, paidInBase - total), currency, locale)}
+              </span>
+            </div>
+          )}
+          {paidInBase + 0.005 < total && !pos.customerId ? (
+            <p className="text-xs text-destructive">{t('pos.creditNeedsCustomer')}</p>
+          ) : null}
           <Button
             className="w-full"
             size="lg"
             loading={checkout.isPending}
-            disabled={paidInBase + 0.005 < total}
+            disabled={paidInBase + 0.005 < total && !pos.customerId}
             onClick={() => checkout.mutate()}
           >
-            {t('pos.completeSale')}
+            {paidInBase + 0.005 < total
+              ? t('pos.completeCredit')
+              : t('pos.completeSale')}
           </Button>
         </div>
       </Dialog>
@@ -646,12 +666,21 @@ export default function PosPage() {
                   </span>
                 </div>
               ) : null}
-              <div className="flex justify-between text-[11px] text-neutral-600">
-                <span>{t('pos.change')}</span>
-                <span className="num">
-                  {formatMoney(completedSale.changeAmount, currency, locale)}
-                </span>
-              </div>
+              {Number(completedSale.creditAmount) > 0 ? (
+                <div className="flex justify-between text-[11px] font-semibold text-black">
+                  <span>{t('pos.debtRemaining')}</span>
+                  <span className="num">
+                    {formatMoney(completedSale.creditAmount, currency, locale)}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex justify-between text-[11px] text-neutral-600">
+                  <span>{t('pos.change')}</span>
+                  <span className="num">
+                    {formatMoney(completedSale.changeAmount, currency, locale)}
+                  </span>
+                </div>
+              )}
               {receiptFooter ? (
                 <>
                   <div className="my-2 border-t border-dashed border-neutral-400" />

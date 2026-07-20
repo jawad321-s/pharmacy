@@ -55,6 +55,7 @@
     "dashboard": "Dashboard",
     "pos": "Point of Sale",
     "dayClose": "Day Close",
+    "debts": "Debts",
     "medicines": "Medicines",
     "inventory": "Inventory",
     "purchases": "Purchases",
@@ -147,7 +148,10 @@
     "receipt": "Receipt",
     "payCurrency": "Payment currency",
     "baseCurrency": "base",
-    "rate": "rate"
+    "rate": "rate",
+    "debtRemaining": "Remaining (debt)",
+    "completeCredit": "Complete on credit",
+    "creditNeedsCustomer": "Select a customer to sell on credit"
   },
   "medicines": {
     "title": "Medicines",
@@ -242,7 +246,27 @@
     "editCustomer": "Edit customer",
     "loyaltyPoints": "Loyalty points",
     "totalSpent": "Total spent",
-    "purchaseHistory": "Purchase history"
+    "purchaseHistory": "Purchase history",
+    "balance": "Debt balance",
+    "openingBalance": "Opening debt",
+    "creditLimit": "Credit limit (0 = unlimited)",
+    "statement": "Account statement",
+    "recordPayment": "Record payment",
+    "settle": "Settle debt",
+    "creditSale": "Credit sale",
+    "payment": "Payment",
+    "debit": "Debit",
+    "credit": "Credit",
+    "noDebt": "No outstanding debt"
+  },
+  "debts": {
+    "title": "Debts (Receivables)",
+    "totalReceivable": "Total receivable",
+    "debtorCount": "Customers with debt",
+    "customer": "Customer",
+    "balance": "Owed",
+    "collect": "Collect payment",
+    "empty": "No customer owes money — all settled!"
   },
   "accounting": {
     "title": "Accounting",

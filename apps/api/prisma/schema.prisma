@@ -199,6 +199,7 @@ model Tenant {
   categories         Category[]
   suppliers          Supplier[]
   customers          Customer[]
+  customerPayments   CustomerPayment[]
   medicines          Medicine[]
   batches            Batch[]
   stockItems         StockItem[]
@@ -329,6 +330,7 @@ model User {
   stockMovements  StockMovement[]
   stockTransfers  StockTransfer[]
   inventoryCounts InventoryCount[]
+  customerPayments CustomerPayment[]
   managedBranches Branch[]         @relation("BranchManager")
 
   @@index([tenantId])
@@ -395,6 +397,7 @@ model Branch {
   purchaseInvoices PurchaseInvoice[]
   expenses       Expense[]
   inventoryCounts InventoryCount[]
+  customerPayments CustomerPayment[]
   transfersFrom  StockTransfer[]  @relation("TransferFrom")
   transfersTo    StockTransfer[]  @relation("TransferTo")
 
@@ -443,21 +446,51 @@ model Supplier {
 }
 
 model Customer {
-  id            String   @id @default(uuid())
+  id            String            @id @default(uuid())
   tenantId      String
-  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   name          String
   phone         String?
   email         String?
-  loyaltyPoints Int      @default(0)
-  totalSpent    Decimal  @default(0) @db.Decimal(14, 2)
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  loyaltyPoints Int               @default(0)
+  totalSpent    Decimal           @default(0) @db.Decimal(14, 2)
+  /// Positive opening debt the customer owed when first added (base currency)
+  openingBalance Decimal          @default(0) @db.Decimal(14, 2)
+  /// Max credit the customer is allowed to carry; 0 = unlimited
+  creditLimit   Decimal           @default(0) @db.Decimal(14, 2)
+  isActive      Boolean           @default(true)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
   sales         Sale[]
+  payments      CustomerPayment[]
 
   @@index([tenantId])
   @@index([tenantId, phone])
+}
+
+/// A payment a customer makes to settle their outstanding credit (debt).
+/// Recorded against the customer's running account balance.
+model CustomerPayment {
+  id                 String        @id @default(uuid())
+  tenantId           String
+  tenant             Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customerId         String
+  customer           Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  branchId           String?
+  branch             Branch?       @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  userId             String?
+  user               User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// Amount applied to the debt, in the tenant base currency
+  amount             Decimal       @db.Decimal(14, 2)
+  method             PaymentMethod @default(CASH)
+  paymentCurrency    String        @default("ILS")
+  exchangeRate       Decimal       @default(1) @db.Decimal(12, 6)
+  paidCurrencyAmount Decimal       @default(0) @db.Decimal(14, 2)
+  note               String?
+  createdAt          DateTime      @default(now())
+
+  @@index([tenantId, customerId])
+  @@index([tenantId, createdAt])
 }
 
 model Medicine {
@@ -653,6 +686,8 @@ model Sale {
   total          Decimal       @db.Decimal(12, 2)
   paidAmount     Decimal       @db.Decimal(12, 2)
   changeAmount   Decimal       @default(0) @db.Decimal(12, 2)
+  /// Unpaid portion booked as customer debt at sale time (base currency)
+  creditAmount   Decimal       @default(0) @db.Decimal(12, 2)
   paymentMethod  PaymentMethod @default(CASH)
   /// Currency the customer actually tendered in (e.g. USD, JOD, ILS)
   paymentCurrency String       @default("ILS")

@@ -55,6 +55,7 @@
     "dashboard": "لوحة التحكم",
     "pos": "نقطة البيع",
     "dayClose": "إغلاق اليومية",
+    "debts": "الديون",
     "medicines": "الأدوية",
     "inventory": "المخزون",
     "purchases": "المشتريات",
@@ -147,7 +148,10 @@
     "receipt": "الإيصال",
     "payCurrency": "عملة الدفع",
     "baseCurrency": "الأساسية",
-    "rate": "السعر"
+    "rate": "السعر",
+    "debtRemaining": "المتبقي (دين)",
+    "completeCredit": "إتمام بالأجل (دين)",
+    "creditNeedsCustomer": "اختر عميلًا للبيع بالأجل"
   },
   "medicines": {
     "title": "الأدوية",
@@ -242,7 +246,27 @@
     "editCustomer": "تعديل العميل",
     "loyaltyPoints": "نقاط الولاء",
     "totalSpent": "إجمالي المشتريات",
-    "purchaseHistory": "سجل المشتريات"
+    "purchaseHistory": "سجل المشتريات",
+    "balance": "رصيد الدين",
+    "openingBalance": "دين افتتاحي",
+    "creditLimit": "حد الائتمان (٠ = غير محدود)",
+    "statement": "كشف حساب",
+    "recordPayment": "تسجيل دفعة",
+    "settle": "تسديد الدين",
+    "creditSale": "بيع بالأجل",
+    "payment": "دفعة",
+    "debit": "مدين",
+    "credit": "دائن",
+    "noDebt": "لا يوجد دين مستحق"
+  },
+  "debts": {
+    "title": "الديون (الذمم المدينة)",
+    "totalReceivable": "إجمالي الديون",
+    "debtorCount": "عملاء عليهم دين",
+    "customer": "العميل",
+    "balance": "المستحق",
+    "collect": "تحصيل دفعة",
+    "empty": "لا يوجد أي عميل عليه دين — كل الحسابات مسدّدة!"
   },
   "accounting": {
     "title": "المحاسبة",

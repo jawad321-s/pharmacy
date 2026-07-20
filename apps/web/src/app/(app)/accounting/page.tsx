@@ -66,7 +66,7 @@ function today(): string {
 export default function AccountingPage() {
   const { t, locale } = useI18n();
   const { tenant, hasPermission } = useAuth();
-  const currency = tenant?.currency ?? 'SAR';
+  const currency = tenant?.currency ?? 'ILS';
   const queryClient = useQueryClient();
   const canManage = hasPermission('accounting.manage');
 

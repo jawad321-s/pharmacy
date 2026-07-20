@@ -305,10 +305,34 @@ export class SalesService {
     // currency. total, paidAmount and changeAmount are always stored in
     // the base currency; paidCurrencyAmount keeps the original tender.
     const paidInBase = round2(dto.paidAmount * exchangeRate);
-    if (paidInBase + 0.005 < total) {
-      throw new BadRequestException('Paid amount is less than the total');
+
+    // Credit (البيع بالأجل): when the tender is less than the total the
+    // remainder is booked as customer debt. This requires a customer and
+    // is disallowed when the sale would push them past their credit limit.
+    const isUnderpaid = paidInBase + 0.005 < total;
+    const creditAmount = isUnderpaid ? round2(total - paidInBase) : 0;
+    if (isUnderpaid) {
+      if (!customer) {
+        throw new BadRequestException(
+          'Select a customer to sell on credit (partial payment)',
+        );
+      }
+      if (toNumber(customer.creditLimit) > 0) {
+        const currentDebt = await this.customerBalance(
+          this.prisma,
+          tenantId,
+          customer.id,
+        );
+        if (currentDebt + creditAmount > toNumber(customer.creditLimit) + 0.005) {
+          throw new BadRequestException(
+            `CREDIT_LIMIT_EXCEEDED:${toNumber(customer.creditLimit)}`,
+          );
+        }
+      }
     }
-    const changeAmount = round2(paidInBase - total);
+    // Cash actually collected (capped at total — any excess is change).
+    const collectedInBase = round2(Math.min(paidInBase, total));
+    const changeAmount = isUnderpaid ? 0 : round2(paidInBase - total);
     const loyaltyEarned = customer ? Math.floor(total * loyaltyEarnRate) : 0;
 
     return this.prisma.$transaction(async (tx) => {
@@ -329,6 +353,7 @@ export class SalesService {
           total,
           paidAmount: paidInBase,
           changeAmount,
+          creditAmount,
           paymentMethod: dto.paymentMethod,
           paymentCurrency,
           exchangeRate,
@@ -401,8 +426,15 @@ export class SalesService {
           {
             account: LedgerAccount.CASH,
             side: LedgerSide.DEBIT,
-            amount: total,
+            amount: collectedInBase,
             description: `Sale ${number}`,
+          },
+          {
+            // Unpaid portion becomes a receivable (customer debt).
+            account: LedgerAccount.ACCOUNTS_RECEIVABLE,
+            side: LedgerSide.DEBIT,
+            amount: creditAmount,
+            description: `Credit sale ${number}`,
           },
           {
             account: LedgerAccount.SALES_REVENUE,
@@ -437,6 +469,36 @@ export class SalesService {
         include: SALE_INCLUDE,
       });
     });
+  }
+
+  /**
+   * Current outstanding debt for a customer, in the base currency:
+   * opening balance + unpaid sale portions − settlements received.
+   */
+  private async customerBalance(
+    tx: Prisma.TransactionClient,
+    tenantId: string,
+    customerId: string,
+  ): Promise<number> {
+    const [customer, creditAgg, paymentAgg] = await Promise.all([
+      tx.customer.findUniqueOrThrow({
+        where: { id: customerId },
+        select: { openingBalance: true },
+      }),
+      tx.sale.aggregate({
+        where: { tenantId, customerId },
+        _sum: { creditAmount: true },
+      }),
+      tx.customerPayment.aggregate({
+        where: { tenantId, customerId },
+        _sum: { amount: true },
+      }),
+    ]);
+    return round2(
+      toNumber(customer.openingBalance) +
+        toNumber(creditAgg._sum.creditAmount) -
+        toNumber(paymentAgg._sum.amount),
+    );
   }
 
   /**

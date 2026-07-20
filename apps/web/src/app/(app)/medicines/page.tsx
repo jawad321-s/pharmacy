@@ -73,7 +73,7 @@ interface Medicine {
 export default function MedicinesPage() {
   const { t, locale } = useI18n();
   const { tenant, hasPermission } = useAuth();
-  const currency = tenant?.currency ?? 'SAR';
+  const currency = tenant?.currency ?? 'ILS';
   const queryClient = useQueryClient();
   const canManage = hasPermission('medicines.manage');
 

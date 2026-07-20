@@ -54,7 +54,7 @@ interface DashboardData {
 export default function DashboardPage() {
   const { t, locale } = useI18n();
   const tenant = useAuth((state) => state.tenant);
-  const currency = tenant?.currency ?? 'SAR';
+  const currency = tenant?.currency ?? 'ILS';
 
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard'],
